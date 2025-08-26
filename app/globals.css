@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* カスタムスタイル */
+@layer components {
+  .medical-card {
+    @apply bg-white rounded-2xl shadow-lg p-6 border border-gray-100;
+  }
+  
+  .medical-button {
+    @apply bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-full font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
+  }
+  
+  .medical-input {
+    @apply w-full p-4 border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition-all duration-200 focus:ring-2 focus:ring-blue-100;
+  }
+  
+  .radio-option {
+    @apply flex items-center p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-blue-300 hover:bg-blue-50 transition-all duration-200;
+  }
+  
+  .radio-option:has(input:checked) {
+    @apply border-blue-500 bg-blue-50;
+  }
+}
+
+/* 音声録音アニメーション */
+@keyframes recording-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.recording-animation {
+  animation: recording-pulse 1.5s ease-in-out infinite;
+}
+
+/* モバイル対応 */
+@media (max-width: 640px) {
+  .medical-card {
+    @apply p-4 mx-2;
+  }
+}

@@ -46,7 +46,7 @@ export default function Home() {
       
       if (isIOS && isSafari) {
         setInputMethod('upload')
-        setError('iOSのSafariをご利用の場合、音声ファイルのアップロード機能をご利用ください。リアルタイム音声認識にはChromeアプリがおすすめです。')
+        setError('iOSのSafariをご利用の場合、音声ファイルのアップロード機能をご利用ください。')
       } else if (!speechRecognitionSupported) {
         setInputMethod('upload')
         setError('このブラウザでは音声ファイルアップロード機能をご利用ください。')
@@ -419,3 +419,257 @@ export default function Home() {
 
             {/* 音声入力エリア */}
             <div className="border-3 border-dashed border-blue-300 rounded-2xl p-8 bg-blue-50 text-center min-h-64 flex flex-col items-center justify-center">
+              
+              {/* 音声入力ボタン */}
+              {(inputMethod === 'speech' || inputMethod === 'upload') && (
+                <button
+                  onClick={toggleVoiceInput}
+                  disabled={loading}
+                  className={`w-20 h-20 rounded-full text-3xl mb-4 transition-all duration-200 ${
+                    isRecording 
+                      ? 'bg-red-500 text-white recording-animation shadow-lg' 
+                      : 'bg-gradient-to-r from-red-400 to-pink-400 text-white hover:scale-110 shadow-md'
+                  } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {isRecording ? '⏹️' : '🎤'}
+                </button>
+              )}
+              
+              {/* ファイルアップロード */}
+              {inputMethod === 'upload' && (
+                <div className="w-full">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="audio/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading || isRecording}
+                    className="w-full medical-button mb-4"
+                  >
+                    📁 音声ファイルを選択
+                  </button>
+                </div>
+              )}
+
+              {/* 状態表示 */}
+              {isRecording && (
+                <div className="text-red-600 font-bold mb-4 animate-pulse">
+                  {inputMethod === 'speech' ? '🎙️ 音声を認識中...' : '📹 録音中...'}
+                </div>
+              )}
+              
+              {loading && (
+                <div className="text-blue-600 font-bold mb-4">
+                  <div className="animate-spin inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
+                  AIが内容を処理中...
+                </div>
+              )}
+              
+              {/* 音声認識結果表示 */}
+              <textarea
+                value={transcription}
+                readOnly
+                placeholder="話した内容がここに表示されます"
+                className="w-full h-32 p-4 border-2 border-gray-200 rounded-xl bg-white resize-none text-sm"
+              />
+            </div>
+
+            {/* 編集可能テキストエリア */}
+            {(summary || editableText) && (
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">📝 内容の確認・編集</label>
+                <textarea
+                  value={editableText}
+                  onChange={(e) => setEditableText(e.target.value)}
+                  placeholder="AIが要約した内容を確認・編集できます"
+                  className="w-full h-32 medical-input resize-none"
+                />
+              </div>
+            )}
+
+            {/* 手動入力モード */}
+            {inputMethod === 'manual' && (
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">✍️ 症状の入力</label>
+                <textarea
+                  value={editableText}
+                  onChange={(e) => setEditableText(e.target.value)}
+                  placeholder="現在の症状について詳しく入力してください"
+                  className="w-full h-32 medical-input resize-none"
+                />
+              </div>
+            )}
+
+            {/* ナビゲーションボタン */}
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={() => goToStep(1)}
+                className="flex-1 bg-gray-500 text-white py-3 rounded-full font-semibold hover:bg-gray-600 transition-colors"
+              >
+                ← 戻る
+              </button>
+              <button
+                onClick={() => goToStep(3)}
+                disabled={!editableText.trim() && !summary.trim() && !transcription.trim()}
+                className={`flex-2 py-3 rounded-full font-semibold transition-all ${
+                  (editableText.trim() || summary.trim() || transcription.trim())
+                    ? 'medical-button'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                確認 →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: 確認画面 */}
+        {currentStep === 3 && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">✅ 内容確認</h1>
+              <p className="text-gray-600">入力内容をご確認ください</p>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+                <div className="flex items-center mb-3">
+                  <span className="text-blue-600 text-lg mr-2">📋</span>
+                  <h3 className="text-blue-800 font-bold">患者情報</h3>
+                </div>
+                <div className="text-gray-700 space-y-1">
+                  <p><strong>お名前:</strong> {patientInfo.lastName} {patientInfo.firstName} 様</p>
+                  <p><strong>性別:</strong> {patientInfo.gender === 'male' ? '男性' : '女性'}</p>
+                  <p><strong>診療区分:</strong> 
+                    {patientInfo.visitType === 'first' && ' 初診'}
+                    {patientInfo.visitType === 'return' && ' 再診'}
+                    {patientInfo.visitType === 'forgot' && ' 診察券番号忘れ'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-green-50 border border-green-200 rounded-xl p-5">
+                <div className="flex items-center mb-3">
+                  <span className="text-green-600 text-lg mr-2">🗣️</span>
+                  <h3 className="text-green-800 font-bold">問診内容</h3>
+                </div>
+                <p className="text-gray-700 leading-relaxed">{editableText || summary || transcription}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={() => goToStep(2)}
+                className="flex-1 bg-gray-500 text-white py-3 rounded-full font-semibold hover:bg-gray-600 transition-colors"
+              >
+                ← 修正
+              </button>
+              <button
+                onClick={() => goToStep(4)}
+                className="flex-2 medical-button py-3 rounded-full font-semibold"
+              >
+                送信 →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: 完了画面 */}
+        {currentStep === 4 && (
+          <div className="text-center space-y-6">
+            <div className="text-6xl mb-4 animate-bounce-slow">✅</div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">送信完了</h1>
+              <p className="text-gray-600 leading-relaxed">
+                問診内容が正常に送信されました。<br />
+                医療機関にて内容を確認いたします。
+              </p>
+            </div>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <p className="text-blue-700 text-sm">
+                💡 実際の診療では、この後医師が問診内容を確認し、<br />
+                より詳細な診察を行います。
+              </p>
+            </div>
+            
+            <button
+              onClick={() => goToStep(5)}
+              className="w-full medical-button py-4 rounded-full font-semibold"
+            >
+              📊 医療機関側の画面を確認
+            </button>
+          </div>
+        )}
+
+        {/* Step 5: 医師用画面 */}
+        {currentStep === 5 && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">👨‍⚕️ 医師用画面</h1>
+              <p className="text-gray-600">診断支援情報</p>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+                <div className="flex items-center mb-3">
+                  <span className="text-blue-600 text-lg mr-2">📄</span>
+                  <h3 className="text-blue-800 font-bold">AI要約内容</h3>
+                </div>
+                <p className="text-gray-700 leading-relaxed">{editableText || summary}</p>
+              </div>
+
+              <div className="bg-green-50 border border-green-200 rounded-xl p-5">
+                <div className="flex items-center mb-3">
+                  <span className="text-green-600 text-lg mr-2">🎙️</span>
+                  <h3 className="text-green-800 font-bold">元の音声内容</h3>
+                </div>
+                <p className="text-gray-700 leading-relaxed">{originalText || 'サンプル音声データ'}</p>
+              </div>
+
+              <div className="bg-purple-50 border border-purple-200 rounded-xl p-5">
+                <div className="flex items-center mb-3">
+                  <span className="text-purple-600 text-lg mr-2">🔍</span>
+                  <h3 className="text-purple-800 font-bold">AI診断支援</h3>
+                </div>
+                {diagnosis ? (
+                  <div className="text-gray-700 leading-relaxed">
+                    <p>{diagnosis}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-gray-600 text-sm">症状から疾患を推測します</p>
+                    <button
+                      onClick={() => generateDiagnosis(editableText || summary || transcription)}
+                      disabled={loading}
+                      className="medical-button px-6 py-2 text-sm"
+                    >
+                      {loading ? '🔄 生成中...' : '🔍 診断支援を生成'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+              <p className="text-yellow-800 text-sm">
+                ⚠️ 注意: これらの情報は診断の参考であり、最終的な診断は医師の判断によります。
+              </p>
+            </div>
+
+            <button
+              onClick={resetDemo}
+              className="w-full bg-gradient-to-r from-gray-500 to-gray-600 text-white py-4 rounded-full font-semibold hover:from-gray-600 hover:to-gray-700 transition-all"
+            >
+              🔄 デモを最初からやり直す
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
